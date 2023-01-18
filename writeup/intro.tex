@@ -1,0 +1,67 @@
+%\section{Setup}
+
+\section{Introduction}
+
+\paragraph{Motivation.} We aim to design differentially private algorithms for linear regression that are computationally and statistically efficient, not just in theory.
+
+In particular, we will look to design estimators whose outputs closely tracks the outputs of ordinary least squares regression. This is not necessarily the same as minimizing squared loss subject to privacy. There are several reasons why we aim to track OLS over other objectives.
+\begin{itemize}
+	\item Sociological. OLS is one of the most common routines used by social scientists and has been extensively studied across various disciplines.  We want to incorporate privacy (and validity!) in as seamless a way as possible. To the naive data scientist, DP regression should (numerically) look like normal regression in the case where inferences are valid. This is different than having the same statistical properties as OLS.
+	\item Statistical. OLS is efficient for several important problems. Consequently, DP estimators that closely track OLS should inherit these favorable properties in appropriate settings. In particular, doing things right should allow for the analysis to be very \emph{modular}. If the DP algorithm is close to OLS then we should be able to easily incorporate things like confidence intervals without having to develop any new machinery.
+\end{itemize}
+
+The final result should be a practical algorithm. It should be implementable and run reasonably fast on small to moderately sized data sets, at least for low-dimensional problems ($d \approx 5$). There should be no fiddling with hyperparameters. Also, there should be no strong data (distributional) assumptions that need to be made for the algorithm to run. 
+
+\subsection{Definitions}
+
+\paragraph{Notation.} We will use $S = \{(x_i,y_i) \}_{i=1}^n$ to denote a dataset of pairs $(x,y)$ where $x \in \R^d$ and $y \in \R$. We use $\ols_S \in \R^d$ to denote the OLS solution on a dataset $S$ and $\ols_S$ to denote the population OLS solution.
+\begin{align*}
+	\ols_S \defeq \left(\sum_i x_i x_i^\top\right )^{-1} \sum_{i} x_i y_i
+\end{align*}
+We abuse notation and let $\ols_S(x') \in \R$ be the output of the OLS  on a dataset $S$ evaluated on a new point $x'$. Similarly, we use $\cA_S: \R^d \rightarrow \R$ to denote the regression function returned by an algorithm $\cA$ when trained on a dataset $S$.
+
+\begin{definition}
+An algorithm $\cA$ is $(\eps, \delta)$-differentially private if for all neighboring datasets $S$ and $S'$
+\begin{align*}
+	\frac{\Pr[\cA_S \in \cT]}{\Pr[\cA_{S'}\in \cT]} \leq \exp(\epsilon) + \delta
+\end{align*}
+\end{definition}
+
+We quantify distance to the OLS solution in the following sense. 
+\begin{definition}
+The OLS tracking error  of an algorithm $\cA$ on a dataset $S$ is defined as:
+\begin{align*}
+\mathsf{d}_{\ols}(\cA, S) \defeq \frac{\E_{\substack{x \sim \cD}} |\cA_S(x) - \ols_S(x)|}{\E_{\substack{S' \sim \D^{|S|} \\ x \sim \cD}} |\ols_S(x) - \ols_\cD(x)|}
+\end{align*}
+\end{definition}
+In general, the tracking error is allowed to also depend on the privacy parameters $(\eps, \delta)$. \\
+
+
+\paragraph{Why is this a good objective?} 
+
+It formalizes the notion that the ``cost of privacy is obviously small''. That is, the difference between the output of the algorithm on a dataset $S$ and the OLS solution trained on the \emph{same} dataset $S$ is small. In fact, it should be vanishingly smaller than the statistical error of OLS on datasets of the same size as $S$.
+
+Writing things in terms of prediction error ensures that the metric is invariant to the scale and variance of the covariates $x$. Furthermore, it forces the algorithm to have low privacy cost on problem instances where OLS achieves very fast rates. For example, if there is very little noise in the responses $y$, then the cost of privacy should be very low.
+
+
+
+\paragraph{What are other objectives? Why are they worse?} Another error metric that we might consider is the following:  
+\begin{align*}
+\mathsf{d}_{\mathrm{bad}}(\cA, S) \defeq \frac{\E_{\substack{x \sim \cD}} |\cA_S(x) - \ols_S(x)|}{\E_{\substack{S'\sim \D^{|S|} \\ x \sim \cD}} |\ols_{S}(x) - \ols_{S'}(x)|}
+\end{align*}
+While superficially similar than the previous objective, this objective requires that an algorithm $\cA$ on a dataset $S$, return a solution whose distance to OLS on $S$ is not much larger than if you reran OLS on a fresh dataset. It says that the privacy randomness is not larger than the resampling randomness. 
+
+One issue with this metric is that it doesn't rule out things like needless adding noise to OLS \jcpnote{Sam had this intuition that you lose a factor of 2? Because you allow things like ending up on the opposite end of the confidence interval.
+}. Another observation is that it is always larger than the previous metric by Jensen's inequality. On some level, they are maybe not so different, but it is nice to not have to talk about resampling experiments. 
+
+
+
+\subsection{Related Work}
+
+Lots of people have worked on differentially private regression. However, there is little consensus on what actually works. A large chunk of the literature looks at algorithms that look like noisy stats where the noise is added depending on some known clipping bounds. The other algorithms are things like robust regression or clipped SGD. I haven't seen anything that tracks OLS super closely or is really practical yet. The conclusions from the \href{https://arxiv.org/abs/2007.05157}{simple DP paper} summarize the state of the art. \href{https://docs.google.com/document/d/1W0M2J9ZHaVqzfdyIympQ81bZxb8tgadG7jI9iI2uHRA/edit}{Lit review executive summary}.
+
+
+
+
+
+
